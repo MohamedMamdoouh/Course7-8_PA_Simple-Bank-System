@@ -3,9 +3,18 @@
 using namespace std;
 
 const string ClientsFileName = "Clients.txt";
-const string Users = "Users.txt";
+const string UsersFileName = "Users.txt";
 
 void ShowMainMenu();
+void ShowMainUsersMenu();
+
+struct stUserData
+{
+    string Username = "";
+    string Password = "";
+    short Permission = 0;
+    bool MarkForDelete = false;
+};
 
 struct stClient
 {
@@ -57,7 +66,7 @@ stClient ConvertLineToClientRecord(string Line, string Delimeter = "#//#")
     return Client;
 }
 
-string ConvertRecordToLine(stClient Client, string Delimeter = "#//#")
+string ConvertClientRecordToLine(stClient Client, string Delimeter = "#//#")
 {
     string ClientRecord = "";
     ClientRecord += Client.AccountNumber + Delimeter;
@@ -237,7 +246,7 @@ void SaveClientsDataToFile(string FileName, vector<stClient> vClients)
             if (C.MarkForDelete == false)
             {
                 // we only write records that are not marked for delete
-                DataLine = ConvertRecordToLine(C);
+                DataLine = ConvertClientRecordToLine(C);
                 MyFile << DataLine << endl;
             }
         }
@@ -262,7 +271,7 @@ void AddNewClient()
 {
     stClient Client;
     Client = ReadNewClient();
-    AddDataLineToFile(ClientsFileName, ConvertRecordToLine(Client));
+    AddDataLineToFile(ClientsFileName, ConvertClientRecordToLine(Client));
 }
 
 void AddNewClients()
@@ -296,7 +305,7 @@ bool DeleteClientByAccountNumber(string AccountNumber, vector<stClient> &vClient
             SaveClientsDataToFile(ClientsFileName, vClients);
             vClients = LoadClientsDataFromFile(ClientsFileName);
 
-            cout << "\n\nClient Deleted Successfully.";
+            cout << "\nClient Deleted Successfully.";
             return true;
         }
     }
@@ -420,12 +429,13 @@ enum enMainMenuOptions
     eDeleteClient = 3,
     eUpdateClient = 4,
     eFindClient = 5,
-    eExit = 6
+    eManageUsers = 6,
+    eExit = 7
 };
 
 short ReadMainMenuOption()
 {
-    cout << "Choose what do you want to do? [1 to 6]? ";
+    cout << "Choose what do you want to do? [1 to 7]? ";
     short Choice = 0;
     cin >> Choice;
 
@@ -461,8 +471,15 @@ void PerfromMainMenuOption(enMainMenuOptions MainMenuOption)
         ShowMainMenu();
         break;
 
+    case enMainMenuOptions::eManageUsers:
+        ShowMainUsersMenu();
+        break;
+
     case enMainMenuOptions::eExit:
         ShowEndScreen();
+        break;
+
+    default:
         break;
     }
 }
@@ -473,52 +490,94 @@ void ShowMainMenu()
     cout << "\t\tMain Menu Screen\n";
     cout << "===========================================\n";
 
-    cout << "\t[1] Show Client List.\n";
-    cout << "\t[2] Add New Client.\n";
-    cout << "\t[3] Delete Client.\n";
-    cout << "\t[4] Update Client Info.\n";
-    cout << "\t[5] Find Client.\n";
-    cout << "\t[6] Exit.\n";
+    cout << "\t[1] Show Client List\n";
+    cout << "\t[2] Add New Client\n";
+    cout << "\t[3] Delete Client\n";
+    cout << "\t[4] Update Client Info\n";
+    cout << "\t[5] Find Client\n";
+    cout << "\t[6] Manage Users\n";
+    cout << "\t[7] Exit\n";
     cout << "===========================================\n";
 
     PerfromMainMenuOption((enMainMenuOptions)ReadMainMenuOption());
 }
 
-struct stLoginData
+///////////////////////////////////
+
+stUserData ConvertLineToUserRecord(string Line, string Delimeter = "#//#")
 {
-    string Username = "";
-    string Password = "";
-    short Permission = 0;
-};
+    stUserData User;
+    vector<string> vUsers;
+    vUsers = SplitString(Line, Delimeter);
 
+    User.Username = vUsers[0];
+    User.Password = vUsers[1];
+    User.Permission = stoi(vUsers[2]);
 
-stLoginData ConvertLineToLoginRecord(string Line, string Delimeter = "#//#")
-{
-    stLoginData Data;
-    vector<string> vLoginData;
-    vLoginData = SplitString(Line, Delimeter);
-
-    Data.Username = vLoginData[0];
-    Data.Password = vLoginData[1];
-    Data.Permission = stoi(vLoginData[2]);
-
-    return Data;
+    return User;
 }
 
-bool IsValidLoginData(string Username, string Password, string FileName)
+vector<stUserData> LoadUsersDataFromFile(string FileName)
 {
+    vector<stUserData> vUsers;
     fstream MyFile;
     MyFile.open(FileName, ios::in); // read Mode
 
     if (MyFile.is_open())
     {
         string Line;
-        stLoginData Data;
+        stUserData User;
 
         while (getline(MyFile, Line))
         {
-            Data = ConvertLineToLoginRecord(Line);
-            if (Data.Username == Username && Data.Password == Password)
+            User = ConvertLineToUserRecord(Line);
+            vUsers.push_back(User);
+        }
+        MyFile.close();
+    }
+    return vUsers;
+}
+
+void ShowAllUsersScreen()
+{
+    vector<stUserData> vUsers = LoadUsersDataFromFile(UsersFileName);
+
+    cout << "\n\t\t\t Users List (" << vUsers.size() << ") User(s)\n";
+    cout << "--------------------------------------------------------------\n";
+    cout << "\t Username \t \t Password \t \t Permission\n";
+
+    for (stUserData &User : vUsers)
+    {
+        cout << User.Username << "\t \t " << User.Password << "\t \t " << User.Permission << endl;
+    }
+    cout << "----------------------------------------------------------------\n";
+}
+
+string ConvertUserRecordToLine(stUserData User, string Delimeter = "#//#")
+{
+    string UserRecord = "";
+    UserRecord += User.Username + Delimeter;
+    UserRecord += User.Password + Delimeter;
+    UserRecord += User.Permission;
+
+    return UserRecord;
+}
+
+bool FindUserByUsername(string Username, string FileName)
+{
+    // First Way -> search in file
+    fstream MyFile;
+    MyFile.open(FileName, ios::in); // read Mode
+
+    if (MyFile.is_open())
+    {
+        string Line;
+        stUserData User;
+
+        while (getline(MyFile, Line))
+        {
+            User = ConvertLineToUserRecord(Line);
+            if (User.Username == Username)
             {
                 MyFile.close();
                 return true;
@@ -530,37 +589,381 @@ bool IsValidLoginData(string Username, string Password, string FileName)
     return false;
 }
 
-stLoginData ReadLoginData()
+bool FindUserByUsername(string Username, vector<stUserData> vUsers, stUserData &User)
 {
-    stLoginData Data;
-    Data.Permission = 0;
-
-    cout << "Enter your username\n";
-    cin >> Data.Username;
-
-    cout << "Enter your password\n";
-    cin >> Data.Password;
-
-    return Data;
+    // Second Way -> search in vector
+    // It updates 'Client' with the found one
+    for (stUserData &D : vUsers)
+    {
+        if (D.Username == Username)
+        {
+            User = D;
+            return true;
+        }
+    }
+    return false;
 }
 
-void ShowLoginScreen()
+stUserData ReadUserData()
+{
+    stUserData User;
+
+    cout << "Enter Username\n";
+    cin >> User.Username;
+
+    cout << "Enter Password\n";
+    cin >> User.Password;
+
+    while (FindUserByUsername(User.Username, UsersFileName))
+    {
+        cout << "Username [" << User.Username << "] already exists! try again\n";
+        cout << "Enter username\n";
+        cin >> User.Username;
+    }
+
+    return User; // KEEP in mind -> deal with permissions
+}
+
+void AddNewUser()
+{
+    stUserData User;
+    User = ReadUserData();
+    AddDataLineToFile(UsersFileName, ConvertUserRecordToLine(User));
+}
+
+void AddNewUsers()
+{
+    char AddMore = 'Y';
+    do
+    {
+        cout << "Adding New User:\n";
+        AddNewUser();
+        cout << "User Added Successfully, do you want to add more Users? Y/N?\n";
+        cin >> AddMore;
+
+    } while (toupper(AddMore) == 'Y');
+}
+
+short ReadMainUsersMenu()
+{
+    cout << "Choose what do you want to do? [1 to 6]?\n";
+    short Choice = 0;
+    cin >> Choice;
+
+    return Choice;
+}
+
+enum enMainUsersMenuOption
+{
+    eListUsers = 1,
+    eAddNewUser = 2,
+    eDeleteUser = 3,
+    eUpdateUserInfo = 4,
+    eFindUser = 5,
+    eMainMenu = 6
+};
+
+string ReadUsername()
+{
+    string Username;
+    cout << "Enter Username\n";
+    cin >> Username;
+
+    return Username;
+}
+
+void PrintUserCard(stUserData User)
+{
+    cout << "The following are the User details:\n";
+    cout << "Username   : " << User.Username << endl;
+    cout << "Password   : " << User.Password << endl;
+    cout << "Permission : " << User.Permission << endl;
+    cout << "----------------------------------------------------------------\n";
+}
+
+void ShowFindUserScreen()
+{
+    cout << "\n-----------------------------------\n";
+    cout << "\tFind User Screen";
+    cout << "\n-----------------------------------\n";
+
+    vector<stUserData> vUsers = LoadUsersDataFromFile(UsersFileName);
+    stUserData User;
+    string Username = ReadUsername();
+
+    if (FindUserByUsername(Username, vUsers, User))
+        PrintUserCard(User);
+
+    else
+        cout << "\nUsername [" << Username << "] is not found!\n";
+}
+
+bool MarkUserForDeleteByUsername(string Username, vector<stUserData> &vUsers)
+{
+    for (stUserData &D : vUsers)
+    {
+        if (D.Username == Username)
+        {
+            D.MarkForDelete = true;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void SaveUsersDataToFile(string FileName, vector<stUserData> vUsers)
+{
+    fstream MyFile;
+    MyFile.open(FileName, ios::out); // overwrite
+
+    string DataLine;
+
+    if (MyFile.is_open())
+    {
+        for (stUserData &D : vUsers)
+        {
+            if (D.MarkForDelete == false)
+            {
+                // we only write records that are NOT marked for delete
+                DataLine = ConvertUserRecordToLine(D);
+                MyFile << DataLine << endl;
+            }
+        }
+
+        MyFile.close();
+    }
+}
+
+bool DeleteUserByUsername(string Username, vector<stUserData> &vUsers)
+{
+    stUserData User;
+    char Answer = 'n';
+
+    if (FindUserByUsername(Username, vUsers, User))
+    {
+        PrintUserCard(User);
+
+        if (Username == "admin")
+        {
+            cout << "Cannot delete admin user\n";
+            return false;
+        }
+
+        cout << "Are you sure you want delete this user? y/n ?\n";
+        cin >> Answer;
+
+        if (Answer == 'y' || Answer == 'Y')
+        {
+            MarkUserForDeleteByUsername(Username, vUsers);
+            SaveUsersDataToFile(UsersFileName, vUsers);
+            vUsers = LoadUsersDataFromFile(UsersFileName);
+
+            cout << "User Deleted Successfully.";
+            return true;
+        }
+    }
+
+    else
+    {
+        cout << "Username [" << Username << "] is Not Found!\n";
+        return false;
+    }
+
+    return false;
+}
+
+void ShowDeleteUserScreen()
+{
+    cout << "\n-----------------------------------\n";
+    cout << "\tDelete User Screen";
+    cout << "\n-----------------------------------\n";
+
+    vector<stUserData> vUsers = LoadUsersDataFromFile(UsersFileName);
+    string Username = ReadUsername();
+    DeleteUserByUsername(Username, vUsers);
+}
+
+stUserData ChangeUserRecordByUsername(string Username)
+{
+    stUserData User;
+    User.Username = Username;
+
+    cout << "\nEnter Password?\n";
+    getline(cin >> ws, User.Password);
+
+    cout << "Enter Permission?\n";
+    cin >> User.Permission;
+
+    return User;
+}
+
+bool UpdateUserByUsername(string Username, vector<stUserData> &vUsers)
+{
+    stUserData User;
+    char Answer = 'n';
+
+    if (FindUserByUsername(Username, vUsers, User))
+    {
+        PrintUserCard(User);
+        cout << "Are you sure you want update this User? y/n ?\n";
+        cin >> Answer;
+
+        if (Answer == 'y' || Answer == 'Y')
+        {
+            for (stUserData &D : vUsers)
+            {
+                if (D.Username == Username)
+                {
+                    D = ChangeUserRecordByUsername(Username);
+                    break;
+                }
+            }
+
+            SaveUsersDataToFile(UsersFileName, vUsers);
+
+            cout << "User Updated Successfully.";
+            return true;
+        }
+    }
+
+    else
+    {
+        cout << "Username [" << Username << "] is Not Found!\n";
+        return false;
+    }
+    return false;
+}
+
+void ShowUpdateUserScreen()
+{
+    cout << "\n-----------------------------------\n";
+    cout << "\tUpdate User Info Screen";
+    cout << "\n-----------------------------------\n";
+
+    vector<stUserData> vUsers = LoadUsersDataFromFile(UsersFileName);
+    string Username = ReadUsername();
+    UpdateUserByUsername(Username, vUsers);
+}
+
+void PerfromMainUsersMenuOption(enMainUsersMenuOption eMainUsersMenuOption)
+{
+    switch (eMainUsersMenuOption)
+    {
+    case enMainUsersMenuOption::eListUsers:
+        ShowAllUsersScreen();
+        ShowMainUsersMenu();
+        break;
+
+    case enMainUsersMenuOption::eAddNewUser:
+        AddNewUsers();
+        ShowMainUsersMenu();
+        break;
+
+    case enMainUsersMenuOption::eFindUser:
+        ShowFindUserScreen();
+        ShowMainUsersMenu();
+        break;
+
+    case enMainUsersMenuOption::eDeleteUser:
+        ShowDeleteUserScreen();
+        ShowMainUsersMenu();
+        break;
+
+    case enMainUsersMenuOption::eUpdateUserInfo:
+        ShowUpdateUserScreen();
+        ShowMainUsersMenu();
+        break;
+
+    case enMainUsersMenuOption::eMainMenu:
+        ShowMainMenu();
+        break;
+
+    default:
+        break;
+    }
+}
+
+void ShowMainUsersMenu()
+{
+    cout << "===========================================\n";
+    cout << "\t\tMain Users Menu Screen\n";
+    cout << "===========================================\n";
+
+    cout << "\t[1] List Users.\n";
+    cout << "\t[2] Add New User.\n";
+    cout << "\t[3] Delete User.\n";
+    cout << "\t[4] Update User Info.\n";
+    cout << "\t[5] Find User.\n";
+    cout << "\t[6] Main Menu.\n";
+    cout << "===========================================\n";
+
+    PerfromMainUsersMenuOption((enMainUsersMenuOption)ReadMainUsersMenu());
+}
+
+bool IsValidLoginData(string Username, string Password, string FileName)
+{
+    fstream MyFile;
+    MyFile.open(FileName, ios::in); // read Mode
+
+    if (MyFile.is_open())
+    {
+        string Line;
+        stUserData User;
+
+        while (getline(MyFile, Line))
+        {
+            User = ConvertLineToUserRecord(Line);
+            if (User.Username == Username && User.Password == Password)
+            {
+                MyFile.close();
+                return true;
+            }
+        }
+
+        MyFile.close();
+    }
+    return false;
+}
+
+stUserData ReadLoginData()
+{
+    stUserData User;
+    User.Permission = 0;
+
+    cout << "Enter your username\n";
+    cin >> User.Username;
+
+    cout << "Enter your password\n";
+    cin >> User.Password;
+
+    return User; // KEEP in mind -> deal with permissions
+}
+
+void LoginScreen()
 {
     cout << "\n-----------------------------------\n";
     cout << "\tLogin Screen";
     cout << "\n-----------------------------------\n";
 
-    stLoginData Data = ReadLoginData();
+    stUserData User = ReadLoginData();
 
-    while (!IsValidLoginData(Data.Username, Data.Password, Users))
+    while (!IsValidLoginData(User.Username, User.Password, UsersFileName))
     {
         cout << "Invalid username or password, try again\n";
-        Data = ReadLoginData();
+        User = ReadLoginData();
     }
 
     ShowMainMenu();
 }
 
+void Logout()
+{
+    LoginScreen();
+}
+
 int main()
 {
+    LoginScreen();
+    return 0;
 }

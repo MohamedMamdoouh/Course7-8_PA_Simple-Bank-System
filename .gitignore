@@ -36,4 +36,4 @@
 *.exe
 
 # Other
-*test.cpp
+test.cpp

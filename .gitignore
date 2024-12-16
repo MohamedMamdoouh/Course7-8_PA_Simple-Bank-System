@@ -34,3 +34,6 @@
 # VS Code
 *.vscode/
 *.exe
+
+# Other
+*test.cpp

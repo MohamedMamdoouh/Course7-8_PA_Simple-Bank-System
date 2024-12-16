@@ -606,8 +606,7 @@ bool FindUserByUsername(string Username, vector<stUserData> vUsers, stUserData &
 
 stUserData ReadUserData()
 {
-    stUserData User;
-
+    stUserData User;    
     cout << "Enter Username\n";
     cin >> User.Username;
 
@@ -887,7 +886,7 @@ void PerfromMainUsersMenuOption(enMainUsersMenuOption eMainUsersMenuOption)
 void ShowMainUsersMenu()
 {
     cout << "===========================================\n";
-    cout << "\t\tMain Users Menu Screen\n";
+    cout << "\n\t\tMain Users Menu Screen\n";
     cout << "===========================================\n";
 
     cout << "\t[1] List Users.\n";
@@ -929,7 +928,6 @@ bool IsValidLoginData(string Username, string Password, string FileName)
 stUserData ReadLoginData()
 {
     stUserData User;
-    User.Permission = 0;
 
     cout << "Enter your username\n";
     cin >> User.Username;

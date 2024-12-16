@@ -558,7 +558,7 @@ string ConvertUserRecordToLine(stUserData User, string Delimeter = "#//#")
     string UserRecord = "";
     UserRecord += User.Username + Delimeter;
     UserRecord += User.Password + Delimeter;
-    UserRecord += User.Permission;
+    UserRecord += to_string(User.Permission);
 
     return UserRecord;
 }
@@ -606,7 +606,7 @@ bool FindUserByUsername(string Username, vector<stUserData> vUsers, stUserData &
 
 stUserData ReadUserData()
 {
-    stUserData User;    
+    stUserData User;
     cout << "Enter Username\n";
     cin >> User.Username;
 
@@ -619,6 +619,9 @@ stUserData ReadUserData()
         cout << "Enter username\n";
         cin >> User.Username;
     }
+
+    // cout << "Enter Permission\n";
+    // cin >> User.Permission;
 
     return User; // KEEP in mind -> deal with permissions
 }

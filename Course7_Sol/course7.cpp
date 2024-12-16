@@ -56,7 +56,7 @@ stClient ConvertLineToClientRecord(string Line, string Delimeter = "#//#")
     return Client;
 }
 
-string ConvertRecordToLine(stClient Client, string Delimeter = "#//#")
+string ConvertClientRecordToLine(stClient Client, string Delimeter = "#//#")
 {
     string ClientRecord = "";
     ClientRecord += Client.AccountNumber + Delimeter;
@@ -236,7 +236,7 @@ void SaveClientsDataToFile(string FileName, vector<stClient> vClients)
             if (C.MarkForDelete == false)
             {
                 // we only write records that are not marked for delete
-                DataLine = ConvertRecordToLine(C);
+                DataLine = ConvertClientRecordToLine(C);
                 MyFile << DataLine << endl;
             }
         }
@@ -261,7 +261,7 @@ void AddNewClient()
 {
     stClient Client;
     Client = ReadNewClient();
-    AddDataLineToFile(ClientsFileName, ConvertRecordToLine(Client));
+    AddDataLineToFile(ClientsFileName, ConvertClientRecordToLine(Client));
 }
 
 void AddNewClients()
@@ -486,6 +486,5 @@ void ShowMainMenu()
 int main()
 
 {
-    ShowMainMenu();
     return 0;
 }

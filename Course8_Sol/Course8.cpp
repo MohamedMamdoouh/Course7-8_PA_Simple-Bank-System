@@ -614,7 +614,7 @@ void ShowAllUsersScreen()
 
     cout << "\n\t\t\t Users List (" << vUsers.size() << ") User(s)\n";
     cout << "--------------------------------------------------------------\n";
-    cout << "\t Username \t \t Password \t \t Permission\n";
+    cout << "Username \t Password \t Permission\n";
 
     for (stUserData &User : vUsers)
     {
@@ -982,10 +982,10 @@ void PerfromMainUsersMenuOption(enMainUsersMenuOption eMainUsersMenuOption)
     }
 }
 
-void ShowMainUsersMenu(stUserData Data)
+void ShowMainUsersMenu()
 {
     cout << "===========================================\n";
-    cout << "\n\t\tMain Users Menu Screen\n";
+    cout << "\t\tMain Users Menu Screen\n";
     cout << "===========================================\n";
 
     cout << "\t[1] List Users.\n";

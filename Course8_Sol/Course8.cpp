@@ -5,9 +5,6 @@ using namespace std;
 const string ClientsFileName = "Clients.txt";
 const string UsersFileName = "Users.txt";
 
-void ShowMainMenu();
-void ShowMainUsersMenu();
-
 struct stUserData
 {
     string Username = "";
@@ -15,6 +12,13 @@ struct stUserData
     short Permission = 0;
     bool MarkForDelete = false;
 };
+
+stUserData UserData;
+
+void ShowMainMenu();
+void ShowMainUsersMenu();
+short ReadPermissionToSet();
+void Logout();
 
 struct stClient
 {
@@ -25,6 +29,38 @@ struct stClient
     double AccountBalance = 0.0;
     bool MarkForDelete = false;
 };
+
+enum enMainUsersMenuOption
+{
+    eListUsers = 1,
+    eAddNewUser = 2,
+    eDeleteUser = 3,
+    eUpdateUserInfo = 4,
+    eFindUser = 5,
+    eMainMenu = 6
+};
+
+enum enMainUsersMenuPermissions
+{
+    eAll = -1,
+    enListUsers = 1,
+    enAddUser = 2,
+    enDeleteUser = 4,
+    enUpdateUserInfo = 8,
+    enFindUser = 16,
+};
+
+bool CheckAccessPermission(enMainUsersMenuPermissions Permission)
+{
+    if (UserData.Permission == enMainUsersMenuPermissions::eAll)
+        return true;
+
+    if ((Permission & UserData.Permission) == Permission)
+        return true;
+
+    else
+        return false;
+}
 
 vector<string> SplitString(string OriginalString, string Delimeter)
 {
@@ -430,7 +466,7 @@ enum enMainMenuOptions
     eUpdateClient = 4,
     eFindClient = 5,
     eManageUsers = 6,
-    eExit = 7
+    eLogout = 7
 };
 
 short ReadMainMenuOption()
@@ -475,8 +511,8 @@ void PerfromMainMenuOption(enMainMenuOptions MainMenuOption)
         ShowMainUsersMenu();
         break;
 
-    case enMainMenuOptions::eExit:
-        ShowEndScreen();
+    case enMainMenuOptions::eLogout:
+        Logout();
         break;
 
     default:
@@ -496,7 +532,7 @@ void ShowMainMenu()
     cout << "\t[4] Update Client Info\n";
     cout << "\t[5] Find Client\n";
     cout << "\t[6] Manage Users\n";
-    cout << "\t[7] Exit\n";
+    cout << "\t[7] Logout\n";
     cout << "===========================================\n";
 
     PerfromMainMenuOption((enMainMenuOptions)ReadMainMenuOption());
@@ -506,40 +542,51 @@ void ShowMainMenu()
 
 stUserData ConvertLineToUserRecord(string Line, string Delimeter = "#//#")
 {
-    stUserData User;
     vector<string> vUsers;
     vUsers = SplitString(Line, Delimeter);
 
-    User.Username = vUsers[0];
-    User.Password = vUsers[1];
-    User.Permission = stoi(vUsers[2]);
+    UserData.Username = vUsers[0];
+    UserData.Password = vUsers[1];
+    UserData.Permission = stoi(vUsers[2]);
 
-    return User;
+    return UserData;
 }
 
 vector<stUserData> LoadUsersDataFromFile(string FileName)
 {
     vector<stUserData> vUsers;
+    stUserData Data;
     fstream MyFile;
     MyFile.open(FileName, ios::in); // read Mode
 
     if (MyFile.is_open())
     {
         string Line;
-        stUserData User;
 
         while (getline(MyFile, Line))
         {
-            User = ConvertLineToUserRecord(Line);
-            vUsers.push_back(User);
+            Data = ConvertLineToUserRecord(Line);
+            vUsers.push_back(Data);
         }
         MyFile.close();
     }
     return vUsers;
 }
 
+void ShowAccessDeniedMessage()
+{
+    cout << "Access Denied, please contact your admin! \n";
+}
+
 void ShowAllUsersScreen()
 {
+    if (!CheckAccessPermission(enMainUsersMenuPermissions::enListUsers))
+    {
+        ShowAccessDeniedMessage();
+        ShowMainMenu();
+        return;
+    }
+
     vector<stUserData> vUsers = LoadUsersDataFromFile(UsersFileName);
 
     cout << "\n\t\t\t Users List (" << vUsers.size() << ") User(s)\n";
@@ -566,18 +613,18 @@ string ConvertUserRecordToLine(stUserData User, string Delimeter = "#//#")
 bool FindUserByUsername(string Username, string FileName)
 {
     // First Way -> search in file
+    stUserData Data;
     fstream MyFile;
     MyFile.open(FileName, ios::in); // read Mode
 
     if (MyFile.is_open())
     {
         string Line;
-        stUserData User;
 
         while (getline(MyFile, Line))
         {
-            User = ConvertLineToUserRecord(Line);
-            if (User.Username == Username)
+            Data = ConvertLineToUserRecord(Line);
+            if (Data.Username == Username)
             {
                 MyFile.close();
                 return true;
@@ -606,35 +653,40 @@ bool FindUserByUsername(string Username, vector<stUserData> vUsers, stUserData &
 
 stUserData ReadUserData()
 {
-    stUserData User;
+    stUserData Data;
     cout << "Enter Username\n";
-    cin >> User.Username;
+    cin >> Data.Username;
 
     cout << "Enter Password\n";
-    cin >> User.Password;
+    cin >> Data.Password;
 
-    while (FindUserByUsername(User.Username, UsersFileName))
+    while (FindUserByUsername(Data.Username, UsersFileName))
     {
-        cout << "Username [" << User.Username << "] already exists! try again\n";
+        cout << "Username [" << Data.Username << "] already exists! try again\n";
         cout << "Enter username\n";
-        cin >> User.Username;
+        cin >> Data.Username;
     }
 
-    // cout << "Enter Permission\n";
-    // cin >> User.Permission;
-
-    return User; // KEEP in mind -> deal with permissions
+    UserData.Permission = ReadPermissionToSet();
+    return UserData;
 }
 
 void AddNewUser()
 {
-    stUserData User;
-    User = ReadUserData();
-    AddDataLineToFile(UsersFileName, ConvertUserRecordToLine(User));
+    stUserData Data;
+    Data = ReadUserData();
+    AddDataLineToFile(UsersFileName, ConvertUserRecordToLine(Data));
 }
 
 void AddNewUsers()
 {
+    if (!CheckAccessPermission(enMainUsersMenuPermissions::enAddUser))
+    {
+        ShowAccessDeniedMessage();
+        ShowMainMenu();
+        return;
+    }
+
     char AddMore = 'Y';
     do
     {
@@ -655,15 +707,44 @@ short ReadMainUsersMenu()
     return Choice;
 }
 
-enum enMainUsersMenuOption
+short ReadPermissionToSet()
 {
-    eListUsers = 1,
-    eAddNewUser = 2,
-    eDeleteUser = 3,
-    eUpdateUserInfo = 4,
-    eFindUser = 5,
-    eMainMenu = 6
-};
+    short Permission = 0;
+    char Option = 'n';
+
+    cout << "Do you want to give full access? y/n \n";
+    cin >> Option;
+
+    if (Option == 'y' || Option == 'Y')
+        return -1;
+
+    cout << "Add User? y/n\n";
+    cin >> Option;
+    if (Option == 'y' || Option == 'Y')
+        Permission += enMainUsersMenuPermissions::enAddUser;
+
+    cout << "Show users list? y/n\n";
+    cin >> Option;
+    if (Option == 'y' || Option == 'Y')
+        Permission += enMainUsersMenuPermissions::enListUsers;
+
+    cout << "Delete user? y/n\n";
+    cin >> Option;
+    if (Option == 'y' || Option == 'Y')
+        Permission += enMainUsersMenuPermissions::enDeleteUser;
+
+    cout << "Update user? y/n\n";
+    cin >> Option;
+    if (Option == 'y' || Option == 'Y')
+        Permission += enMainUsersMenuPermissions::enUpdateUserInfo;
+
+    cout << "Find user? y/n\n";
+    cin >> Option;
+    if (Option == 'y' || Option == 'Y')
+        Permission += enMainUsersMenuPermissions::enFindUser;
+
+    return Permission;
+}
 
 string ReadUsername()
 {
@@ -685,16 +766,22 @@ void PrintUserCard(stUserData User)
 
 void ShowFindUserScreen()
 {
+    if (!CheckAccessPermission(enMainUsersMenuPermissions::enFindUser))
+    {
+        ShowAccessDeniedMessage();
+        ShowMainMenu();
+        return;
+    }
+
     cout << "\n-----------------------------------\n";
     cout << "\tFind User Screen";
     cout << "\n-----------------------------------\n";
 
     vector<stUserData> vUsers = LoadUsersDataFromFile(UsersFileName);
-    stUserData User;
     string Username = ReadUsername();
 
-    if (FindUserByUsername(Username, vUsers, User))
-        PrintUserCard(User);
+    if (FindUserByUsername(Username, vUsers, UserData))
+        PrintUserCard(UserData);
 
     else
         cout << "\nUsername [" << Username << "] is not found!\n";
@@ -739,12 +826,11 @@ void SaveUsersDataToFile(string FileName, vector<stUserData> vUsers)
 
 bool DeleteUserByUsername(string Username, vector<stUserData> &vUsers)
 {
-    stUserData User;
     char Answer = 'n';
 
-    if (FindUserByUsername(Username, vUsers, User))
+    if (FindUserByUsername(Username, vUsers, UserData))
     {
-        PrintUserCard(User);
+        PrintUserCard(UserData);
 
         if (Username == "admin")
         {
@@ -777,6 +863,13 @@ bool DeleteUserByUsername(string Username, vector<stUserData> &vUsers)
 
 void ShowDeleteUserScreen()
 {
+    if (!CheckAccessPermission(enMainUsersMenuPermissions::enDeleteUser))
+    {
+        ShowAccessDeniedMessage();
+        ShowMainMenu();
+        return;
+    }
+
     cout << "\n-----------------------------------\n";
     cout << "\tDelete User Screen";
     cout << "\n-----------------------------------\n";
@@ -788,26 +881,24 @@ void ShowDeleteUserScreen()
 
 stUserData ChangeUserRecordByUsername(string Username)
 {
-    stUserData User;
-    User.Username = Username;
+    UserData.Username = Username;
 
     cout << "\nEnter Password?\n";
-    getline(cin >> ws, User.Password);
+    getline(cin >> ws, UserData.Password);
 
     cout << "Enter Permission?\n";
-    cin >> User.Permission;
+    cin >> UserData.Permission;
 
-    return User;
+    return UserData;
 }
 
 bool UpdateUserByUsername(string Username, vector<stUserData> &vUsers)
 {
-    stUserData User;
     char Answer = 'n';
 
-    if (FindUserByUsername(Username, vUsers, User))
+    if (FindUserByUsername(Username, vUsers, UserData))
     {
-        PrintUserCard(User);
+        PrintUserCard(UserData);
         cout << "Are you sure you want update this User? y/n ?\n";
         cin >> Answer;
 
@@ -839,6 +930,13 @@ bool UpdateUserByUsername(string Username, vector<stUserData> &vUsers)
 
 void ShowUpdateUserScreen()
 {
+    if (!CheckAccessPermission(enMainUsersMenuPermissions::enUpdateUserInfo))
+    {
+        ShowAccessDeniedMessage();
+        ShowMainMenu();
+        return;
+    }
+
     cout << "\n-----------------------------------\n";
     cout << "\tUpdate User Info Screen";
     cout << "\n-----------------------------------\n";
@@ -905,13 +1003,13 @@ void ShowMainUsersMenu()
 
 bool IsValidLoginData(string Username, string Password, string FileName)
 {
+    stUserData User;
     fstream MyFile;
     MyFile.open(FileName, ios::in); // read Mode
 
     if (MyFile.is_open())
     {
         string Line;
-        stUserData User;
 
         while (getline(MyFile, Line))
         {
@@ -930,15 +1028,14 @@ bool IsValidLoginData(string Username, string Password, string FileName)
 
 stUserData ReadLoginData()
 {
-    stUserData User;
-
+    stUserData Data;
     cout << "Enter your username\n";
-    cin >> User.Username;
+    cin >> Data.Username;
 
     cout << "Enter your password\n";
-    cin >> User.Password;
+    cin >> Data.Password;
 
-    return User; // KEEP in mind -> deal with permissions
+    return Data;
 }
 
 void LoginScreen()
@@ -947,12 +1044,12 @@ void LoginScreen()
     cout << "\tLogin Screen";
     cout << "\n-----------------------------------\n";
 
-    stUserData User = ReadLoginData();
+    stUserData Data = ReadLoginData();
 
-    while (!IsValidLoginData(User.Username, User.Password, UsersFileName))
+    while (!IsValidLoginData(Data.Username, Data.Password, UsersFileName))
     {
         cout << "Invalid username or password, try again\n";
-        User = ReadLoginData();
+        Data = ReadLoginData();
     }
 
     ShowMainMenu();

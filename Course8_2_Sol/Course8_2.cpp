@@ -90,23 +90,6 @@ vector<stClient> LoadClientsDataFromFile(string FileName)
     return vClients;
 }
 
-bool FindClientByAccountNumberAndPinCode(string AccountNumber, string PinCode, stClient &Client)
-{
-
-    vector<stClient> vClients = LoadClientsDataFromFile(ClientsFileName);
-
-    for (stClient &C : vClients)
-    {
-
-        if (C.AccountNumber == AccountNumber && C.PinCode == PinCode)
-        {
-            Client = C;
-            return true;
-        }
-    }
-    return false;
-}
-
 string ConvertClientRecordToLine(stClient Client, string Delimeter = "#//#")
 {
     string ClientRecord = "";
@@ -146,7 +129,7 @@ bool DepositBalanceToClientByAccountNumber(string AccountNumber, double Amount, 
 {
     char Answer = 'n';
 
-    cout << "\n\nAre you sure you want perfrom this transaction? y/n ? ";
+    cout << "Are you sure you want perfrom this transaction?y/n?\n";
     cin >> Answer;
 
     if (Answer == 'y' || Answer == 'Y')
@@ -158,12 +141,10 @@ bool DepositBalanceToClientByAccountNumber(string AccountNumber, double Amount, 
             {
                 C.AccountBalance += Amount;
                 SaveClientsDataToFile(ClientsFileName, vClients);
-                cout << "\nDone Successfully. New balance is: " << C.AccountBalance;
-
+                cout << "Done Successfully. New balance is: " << C.AccountBalance  << endl;
                 return true;
             }
         }
-
         return false;
     }
 
@@ -238,6 +219,7 @@ void PerfromQuickWithdrawOption(short QuickWithDrawOption)
     {
         cout << "\nThe amount exceeds your balance, make another choice\n";
         ShowQuickWithdrawScreen();
+        return; // Important, to avoid going behind!
     }
 
     vector<stClient> vClients = LoadClientsDataFromFile(ClientsFileName);
@@ -256,7 +238,7 @@ void ShowQuickWithdrawScreen()
     cout << "\t[7] 800\t\t[8] 1000\n";
     cout << "\t[9] Exit\n";
     cout << "===========================================\n";
-    cout << "Your Balance is " << CurrentClient.AccountBalance;
+    cout << "Your Balance is " << CurrentClient.AccountBalance << endl;
 
     PerfromQuickWithdrawOption(ReadQuickWithdrawOption());
 }
@@ -282,24 +264,6 @@ short ReadMainMenuOption()
         cin >> Option;
     }
     return Option;
-}
-
-string ReadUsername()
-{
-    string Username;
-    cout << "Enter Username\n";
-    cin >> Username;
-
-    return Username;
-}
-
-string ReadPassword()
-{
-    string Password;
-    cout << "Enter your password\n";
-    cin >> Password;
-
-    return Password;
 }
 
 stUserData ConvertLineToUserRecord(string Line, string Delimeter = "#//#")
@@ -342,22 +306,70 @@ bool IsValidLoginData(string Username, string Password, string FileName, stUserD
     return false;
 }
 
+string ReadAccountNumber()
+{
+    string AccountNumber;
+    cout << "Enter Account Number\n";
+    cin >> AccountNumber;
+
+    return AccountNumber;
+}
+
+string ReadPinCode()
+{
+    string PinCode;
+    cout << "Enter your PinCode\n";
+    cin >> PinCode;
+
+    return PinCode;
+}
+
+bool FindClientByAccountNumberAndPinCode(string AccountNumber, string PinCode, stClient &Client)
+{
+    // And update 'Client' with the found one
+    vector<stClient> vClients = LoadClientsDataFromFile(ClientsFileName);
+
+    for (stClient &C : vClients)
+    {
+        if (C.AccountNumber == AccountNumber && C.PinCode == PinCode)
+        {
+            Client = C;
+            return true;
+        }
+    }
+    return false;
+}
+
+void PrintClientCard(stClient Client)
+{
+    cout << "The following are the client details:\n";
+    cout << "Account Number : " << Client.AccountNumber << endl;
+    cout << "Pin Code       : " << Client.PinCode << endl;
+    cout << "Name           : " << Client.Name << endl;
+    cout << "Phone          : " << Client.Phone << endl;
+    cout << "Account Balance: " << Client.AccountBalance << endl;
+    cout << "----------------------------------------------------------------\n";
+}
+
 void LoginScreen()
 {
     cout << "\n-----------------------------------\n";
     cout << "\tLogin Screen";
     cout << "\n-----------------------------------\n";
 
-    string Username = ReadUsername();
-    string Password = ReadPassword();
+    string AccountNumber = ReadAccountNumber();
+    string PinCode = ReadPinCode();
+    stClient Client;
 
-    while (!IsValidLoginData(Username, Password, UsersFileName, CurrentUser))
+    while (!FindClientByAccountNumberAndPinCode(AccountNumber, PinCode, Client))
     {
-        cout << "Invalid username or password, try again\n";
-        Username = ReadUsername();
-        Password = ReadPassword();
+        cout << "Invalid Account Number or PinCode, try again\n";
+        AccountNumber = ReadAccountNumber();
+        PinCode = ReadPinCode();
     }
 
+    CurrentClient = Client;
+    PrintClientCard(Client);
     ShowMainMenu();
 }
 
@@ -481,7 +493,7 @@ void ShowMainMenu()
     cout << "\t\tATM Main Menu Screen\n";
     cout << "===========================================\n";
     cout << "\t[1] Quick Withdraw\n";
-    cout << "\t[2] Normal Withdraw n";
+    cout << "\t[2] Normal Withdraw\n";
     cout << "\t[3] Deposit\n";
     cout << "\t[4] Check Balance\n";
     cout << "\t[5] Logout\n";
